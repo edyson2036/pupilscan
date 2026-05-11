@@ -26,7 +26,7 @@ CORS(app, resources={r"/*": {"origins": "*"}})
 
 MODEL_PATH = os.environ.get('MODEL_PATH', 'best.onnx')
 ort_session = None
-INPUT_SIZE  = 640
+INPUT_SIZE  = 320
 
 def load_model():
     global ort_session
@@ -128,11 +128,19 @@ def process_video(video_path):
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (PP_MORPH_K, PP_MORPH_K))
     areas, times, conf_list = [], [], []
     frame_idx = detected = 0
-    while True:
+   while True:
         ret, frame = cap.read()
         if not ret: break
+
         t = frame_idx / fps
         area = None
+
+        # Procesar solo 1 de cada 2 frames para reducir memoria y tiempo
+        if frame_idx % 2 != 0:
+            areas.append(None)
+            times.append(round(t, 4))
+            frame_idx += 1
+            continue
         try:
             img, orig_h, orig_w = preprocess(frame)
             outputs = sess.run(None, {input_name: img})
