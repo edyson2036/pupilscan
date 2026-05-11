@@ -18,7 +18,7 @@ app = Flask(__name__, static_folder='static')
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 MODEL_PATH = os.environ.get('MODEL_PATH', 'best.onnx')
-INPUT_SIZE  = 640
+INPUT_SIZE  = 320
 ort_session = None
 
 CONF       = float(os.environ.get('CONF',       '0.20'))
@@ -150,7 +150,7 @@ def process_video(video_path):
         t = frame_idx / fps
 
         # Procesar 1 de cada 2 frames para ahorrar memoria
-        if frame_idx % 4 != 0:
+        if frame_idx % 2 != 0:
             areas.append(None)
             times.append(round(t, 4))
             frame_idx += 1
