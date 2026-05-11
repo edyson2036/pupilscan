@@ -56,22 +56,35 @@ def preprocess(frame):
 
 def postprocess_mask(output, orig_h, orig_w, conf_thresh=CONF):
     try:
-        det   = output[0][0].T   # (8400, 116)
+        det   = output[0][0].T   # (8400, 37)
         proto = output[1][0]      # (32, 160, 160)
+
+        # Con 1 clase: cols 0-3 bbox, col 4 conf, col 5 clase, cols 5-36 mask coefs
+        # Estructura: [x, y, w, h, conf, cls_score x1, mask_coef x32]
         scores = det[:, 4]
-        mask_scores = scores >= conf_thresh
-        if not np.any(mask_scores):
+        mask_ok = scores >= conf_thresh
+        if not np.any(mask_ok):
             return None, 0.0
-        det_f = det[mask_scores]
+
+        det_f     = det[mask_ok]
         best_idx  = np.argmax(det_f[:, 4])
         best_det  = det_f[best_idx]
         best_conf = float(best_det[4])
-        mask_coefs = best_det[6:38].reshape(1, 32)
-        proto_flat = proto.reshape(32, -1)
-        mask_flat  = (mask_coefs @ proto_flat).reshape(160, 160)
-        mask_bin   = (1.0 / (1.0 + np.exp(-mask_flat)) > 0.5).astype(np.uint8) * 255
+
+        # Coeficientes de máscara: últimas 32 columnas (índices 5 a 36)
+        mask_coefs = best_det[5:37].reshape(1, 32)
+
+        proto_flat = proto.reshape(32, -1)           # (32, 25600)
+        mask_flat  = (mask_coefs @ proto_flat)        # (1, 25600)
+        mask_160   = mask_flat.reshape(160, 160)
+
+        # Sigmoid + umbral
+        mask_sig   = 1.0 / (1.0 + np.exp(-mask_160))
+        mask_bin   = (mask_sig > 0.5).astype(np.uint8) * 255
         mask_full  = cv2.resize(mask_bin, (orig_w, orig_h))
+
         return mask_full, best_conf
+
     except Exception as e:
         log.warning(f'postprocess: {e}')
         return None, 0.0
