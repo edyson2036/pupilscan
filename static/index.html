@@ -156,6 +156,14 @@ main{position:relative;z-index:1;max-width:1300px;margin:0 auto;padding:24px 20p
 .stitle{font-size:13px;font-weight:500;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;gap:10px}
 .stitle::after{content:'';flex:1;height:1px;background:var(--border)}
 .tip{font-family:var(--mono);font-size:11px;color:var(--text3);text-align:center;margin-top:8px}
+.upload-zone{border:2px dashed var(--border2);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;transition:all .3s;background:var(--bg3);margin-top:6px}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--cyan);background:var(--cyan-dim)}
+.upload-zone input{display:none}
+.upload-zone-label{font-family:var(--mono);font-size:12px;color:var(--text2);line-height:1.7;cursor:pointer}
+.upload-zone-label span{color:var(--cyan)}
+.mode-tabs{display:flex;gap:8px;margin-bottom:14px}
+.tab{flex:1;padding:9px;border:1px solid var(--border);border-radius:var(--r);font-family:var(--mono);font-size:12px;color:var(--text3);background:transparent;cursor:pointer;transition:all .2s;text-align:center}
+.tab.active{border-color:var(--cyan);color:var(--cyan);background:var(--cyan-dim)}
 .legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 .leg-item{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:11px;color:var(--text2)}
 .leg-dot{width:10px;height:10px;border-radius:2px}
@@ -193,6 +201,14 @@ main{position:relative;z-index:1;max-width:1300px;margin:0 auto;padding:24px 20p
   <!-- ══ SCREEN 1: CAPTURE ══ -->
   <div class="screen active" id="sc1">
     <div class="stitle">Captura de video pupilar</div>
+    <!-- Tabs de modo -->
+    <div class="mode-tabs">
+      <div class="tab active" id="tab-cam" onclick="switchMode('cam')">📷 Grabar con cámara</div>
+      <div class="tab" id="tab-file" onclick="switchMode('file')">📁 Subir video desde archivo</div>
+    </div>
+
+    <!-- Modo cámara -->
+    <div id="mode-cam">
     <div class="cap-grid">
       <div>
         <div class="clabel">Vista en tiempo real</div>
@@ -255,7 +271,63 @@ main{position:relative;z-index:1;max-width:1300px;margin:0 auto;padding:24px 20p
         <button class="btn btn-secondary" id="btn-retry" onclick="initCamera()" style="display:none">Reintentar cámara</button>
       </div>
     </div>
-  </div>
+  </div><!-- end mode-cam -->
+
+  <!-- Modo subir archivo -->
+  <div id="mode-file" style="display:none">
+    <div class="rev-grid">
+      <div>
+        <div class="clabel">Video a analizar</div>
+        <div class="vid-player" id="upload-preview-wrap">
+          <video id="upload-preview-vid" controls style="width:100%;height:100%;display:none"></video>
+          <div id="upload-preview-placeholder" style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;color:var(--text3)">
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect x="4" y="8" width="32" height="24" rx="4" stroke="currentColor" stroke-width="1.5"/><path d="M16 15l10 5-10 5V15z" fill="currentColor"/></svg>
+            <span style="font-family:var(--mono);font-size:12px">El video aparecerá aquí</span>
+          </div>
+        </div>
+        <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()"
+          ondragover="event.preventDefault();this.classList.add('drag')"
+          ondragleave="this.classList.remove('drag')"
+          ondrop="handleDrop(event)">
+          <input type="file" id="file-input" accept="video/*" onchange="handleFileSelect(event)">
+          <label class="upload-zone-label">
+            <span>Haz clic aquí</span> o arrastra un video .mp4 / .webm<br>
+            El video debe tener el mismo protocolo:<br>
+            2s basal → 4s LED encendido → 2s recuperación
+          </label>
+        </div>
+        <p class="tip">Útil para probar el análisis sin el hardware físico.</p>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:13px">
+        <div class="card">
+          <div class="clabel">Información</div>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px">
+            <div class="drow"><span>Archivo</span><span id="file-name" style="color:var(--text);font-size:11px">Ninguno</span></div>
+            <div class="drow"><span>Tamaño</span><span id="file-size" style="color:var(--text)">—</span></div>
+            <div class="drow"><span>Duración</span><span id="file-dur" style="color:var(--text)">—</span></div>
+          </div>
+        </div>
+        <div class="card" style="background:var(--cyan-dim);border-color:var(--cyan)">
+          <div style="font-family:var(--mono);font-size:11px;color:var(--cyan);letter-spacing:.06em;margin-bottom:6px">NOTA</div>
+          <p style="font-size:12px;color:var(--text2);line-height:1.7">
+            El sistema asume que en el video:<br>
+            · t=0–2s: pupila basal (LED apagado)<br>
+            · t=2–6s: estímulo (LED encendido)<br>
+            · t=6–8s: recuperación
+          </p>
+        </div>
+        <button class="btn btn-green" id="btn-analyze-file" onclick="analyzeUploadedFile()" disabled>
+          Analizar este video
+        </button>
+        <button class="btn btn-secondary" onclick="switchMode('cam')">
+          Volver a cámara
+        </button>
+      </div>
+    </div>
+  </div><!-- end mode-file -->
+
+  </div><!-- end sc1 -->
 
   <!-- ══ SCREEN 2: REVIEW ══ -->
   <div class="screen" id="sc2">
@@ -460,7 +532,85 @@ let recordedChunks = [];
 let captureInterval = null;
 let timerStart = null;
 let lastResult = null;
+let uploadedFile = null;
 const TOTAL = 8;
+
+// ── Modo: cámara / archivo ────────────────────────────────────────────────
+function switchMode(mode) {
+  document.getElementById('mode-cam').style.display  = mode==='cam'  ? '' : 'none';
+  document.getElementById('mode-file').style.display = mode==='file' ? '' : 'none';
+  document.getElementById('tab-cam').classList.toggle('active',  mode==='cam');
+  document.getElementById('tab-file').classList.toggle('active', mode==='file');
+}
+
+function handleFileSelect(e) {
+  const file = e.target.files[0];
+  if (file) loadUploadedFile(file);
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('upload-zone').classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('video/')) loadUploadedFile(file);
+}
+
+function loadUploadedFile(file) {
+  uploadedFile = file;
+  const url = URL.createObjectURL(file);
+  const vid = document.getElementById('upload-preview-vid');
+  vid.src = url;
+  vid.style.display = 'block';
+  document.getElementById('upload-preview-placeholder').style.display = 'none';
+
+  // Info
+  document.getElementById('file-name').textContent = file.name.length > 20
+    ? file.name.slice(0,18)+'…' : file.name;
+  document.getElementById('file-size').textContent =
+    (file.size / 1024 / 1024).toFixed(2) + ' MB';
+
+  vid.onloadedmetadata = () => {
+    const d = Math.round(vid.duration);
+    document.getElementById('file-dur').textContent = d + ' s';
+  };
+
+  document.getElementById('btn-analyze-file').disabled = false;
+}
+
+async function analyzeUploadedFile() {
+  if (!uploadedFile) return;
+  document.getElementById('btn-analyze-file').disabled = true;
+
+  // Convertir a base64
+  const b64 = await blobToBase64(uploadedFile);
+
+  // Guardar como recordedChunks para reutilizar sendToBackend
+  recordedChunks = [uploadedFile];
+  showScreen(3);
+  startProcessingSteps();
+
+  try {
+    const resp = await fetch(`${BACKEND}/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ video: b64 })
+    });
+    if (!resp.ok) throw new Error('Error del servidor: ' + resp.status);
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
+    lastResult = data;
+    [1,2,3,4,5].forEach(i => stepDone(i));
+    document.getElementById('pbar').style.width = '100%';
+    document.getElementById('plbl').textContent = '¡Análisis completado!';
+    setTimeout(() => { showResults(data); showScreen(4); }, 600);
+  } catch(err) {
+    console.error(err);
+    document.getElementById('plbl').textContent = 'Error: ' + err.message;
+    document.getElementById('res-err').style.display = 'flex';
+    document.getElementById('err-msg').textContent = err.message;
+    setTimeout(() => showScreen(4), 1500);
+  }
+}
 
 // ── UI helpers ────────────────────────────────────────────────────────────
 function showScreen(n) {
@@ -575,6 +725,26 @@ function goCapture() {
     document.getElementById('live-badge').style.display = '';
     document.getElementById('cam-dot').classList.add('live');
   }
+  // Reset file upload state
+  uploadedFile = null;
+  document.getElementById('btn-analyze-file').disabled = true;
+  document.getElementById('file-name').textContent = 'Ninguno';
+  document.getElementById('file-size').textContent = '—';
+  document.getElementById('file-dur').textContent = '—';
+  document.getElementById('upload-preview-vid').style.display = 'none';
+  document.getElementById('upload-preview-placeholder').style.display = 'flex';
+  // Reset proc steps
+  [0,1,2,3,4,5].forEach(i => {
+    const el = document.getElementById('ps'+i);
+    el.classList.remove('active','done');
+    el.querySelector('.ps-ico').textContent = i+1;
+  });
+  document.getElementById('pbar').style.width = '0%';
+  document.getElementById('res-ok').style.display = 'none';
+  document.getElementById('res-err').style.display = 'none';
+  document.getElementById('chart-img').style.display = 'none';
+  document.getElementById('chart-placeholder').style.display = 'flex';
+  switchMode('cam');
   showScreen(1);
 }
 
@@ -636,6 +806,7 @@ function blobToBase64(blob) {
 
 // Animación de pasos (solo visual, independiente del fetch real)
 let procTimers = [];
+function startProcessingSteps() { animateProcSteps(); }
 function animateProcSteps() {
   const delays = [0, 800, 1600, 2800, 4200, 5000];
   procTimers.forEach(t => clearTimeout(t));

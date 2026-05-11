@@ -35,6 +35,11 @@ def load_model():
     global model
     if model is None:
         log.info(f'Cargando modelo: {MODEL_PATH}')
+        import torch
+        import ultralytics.nn.tasks
+        torch.serialization.add_safe_globals([
+            ultralytics.nn.tasks.SegmentationModel
+        ])
         model = YOLO(MODEL_PATH)
         log.info('Modelo cargado OK')
     return model
