@@ -36,11 +36,15 @@ def load_model():
     if model is None:
         log.info(f'Cargando modelo: {MODEL_PATH}')
         import torch
-        import ultralytics.nn.tasks
-        torch.serialization.add_safe_globals([
-            ultralytics.nn.tasks.SegmentationModel
-        ])
+        # Permitir carga completa del modelo YOLOv8
+        # El modelo es de fuente propia (best.pt entrenado localmente)
+        _original_load = torch.load
+        def _safe_load(*args, **kwargs):
+            kwargs['weights_only'] = False
+            return _original_load(*args, **kwargs)
+        torch.load = _safe_load
         model = YOLO(MODEL_PATH)
+        torch.load = _original_load  # restaurar
         log.info('Modelo cargado OK')
     return model
 
